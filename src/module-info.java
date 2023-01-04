@@ -1,0 +1,9 @@
+/**
+ * 
+ */
+/**
+ * @author kiwi
+ *
+ */
+module Compta {
+}
