@@ -11,8 +11,10 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 record Expense(String label, int amount, String comment) {
 }
@@ -34,6 +36,8 @@ public class AppConsole {
 	static final String DR_TM = "dr:tm";
 	static final String EX = "ex";
 	static final String IM = "im";
+	static final String IM_S = "im:s";
+	static final String IM_M = "im:m";
 
 	static final String MONTHLY_EXPENSES_TITLE = "Monthly Expenses";
 	static final String QUARTER_EXPENSES_TITLE = "Quarter Expenses";
@@ -140,17 +144,30 @@ public class AppConsole {
 					lines.addAll(convertExpensesToCSVformat(monthExpenses, MONTH_EXPENSES_TITLE, COMMENTED_CSV_LINE));
 
 					lastExportCsvFileName = exportAllToCSV(lines);
-					System.out.println();
 					readCSV(lastExportCsvFileName, VERBOSE);
 				}
 				case IM -> {
+					System.out.println("Trying to import last export...");
 					runImportProcess(lastExportCsvFileName);
+				}
+				case IM_S -> {
+					System.out.println("Trying to found existing CSV files...");
+					var existingFiles = findExistingCsvFile();
+					if (existingFiles.isEmpty()) {
+						System.out.println("Sorry: No existing CSV file found.");
+						break;
+					}
+					var selectedFileName = selectExistingCsvFile(existingFiles);
+					runImportProcess(selectedFileName);
+				}
+				case IM_M -> {
+					var manualFileName = scanCsvFileName();
+					runImportProcess(manualFileName);
 				}
 				default -> {
 
 				}
 			}
-//			System.out.println();
 		} while (!command.equals("q"));
 		System.out.println("# End");
 
@@ -158,15 +175,43 @@ public class AppConsole {
 
 	private static void runImportProcess(final String fileName) throws IOException, InterruptedException {
 		if (null == fileName || fileName.isBlank()) {
-			System.out.println("No exported file found. Please enter the file name.");
-			BufferedReader fileNameReader = new BufferedReader(new InputStreamReader(System.in));
-			System.out.print("filename ?> ");
-			final var manualFileName = fileNameReader.readLine();
-			System.out.println("Trying reading file : " + manualFileName);
-			runImportProcess(manualFileName);
+			System.out.println("Sorry: No file found.");
 		} else {
 			importCSV(fileName, VERBOSE);
+			lastExportCsvFileName = fileName;
 		}
+	}
+
+	private static List<String> findExistingCsvFile() {
+		var folder = new File("./");
+		return List.of(folder.list()).stream().filter(file -> file.matches("^(\\w*-)+\\d+-\\d+\\.csv"))
+				.collect(Collectors.toList());
+	}
+
+	private static String scanCsvFileName() throws IOException {
+		System.out.println("No exported file found. Please enter the file name.");
+		BufferedReader fileNameReader = new BufferedReader(new InputStreamReader(System.in));
+		System.out.print("filename ?> ");
+		return fileNameReader.readLine();
+	}
+
+	private static String selectExistingCsvFile(final List<String> fileNames) throws IOException {
+		System.out.println("Please selected a file from the list :");
+		var count = 0;
+		for (Iterator iterator = fileNames.iterator(); iterator.hasNext();) {
+			String filename = (String) iterator.next();
+			count++;
+			System.out.println(count + " : " + filename);
+		}
+
+		BufferedReader fileSelector = new BufferedReader(new InputStreamReader(System.in));
+		System.out.print("Number ?> ");
+		var selectedFileNumber = Integer.parseInt(fileSelector.readLine());
+		if (selectedFileNumber < 0 || selectedFileNumber > count) {
+			selectExistingCsvFile(fileNames);
+		}
+		return fileNames.get(selectedFileNumber - 1);
+
 	}
 
 	private static void displayTable(final List<Expense> data) {
@@ -279,11 +324,11 @@ public class AppConsole {
 	}
 
 	private static void readCSV(final String fileName, final boolean verbose, final boolean withImport)
-			throws FileNotFoundException, InterruptedException {
-//		var fileName = "compta-export-csv-20230103-231916.csv";
+			throws InterruptedException {
+
+		System.out.println("Try reading file: " + fileName);
 		try (Scanner sc = new Scanner(new File(fileName))) {
 			System.out.println("CSV file reading ...");
-			System.out.println("File: " + fileName + "\n");
 			while (sc.hasNextLine()) {
 				var currentLine = sc.nextLine();
 				if (verbose) {
@@ -296,7 +341,7 @@ public class AppConsole {
 					convertCSVLineToExpense(currentLine, verbose);
 				}
 			}
-			System.out.println("\nCSV file closed.\n");
+			System.out.println("#CSV file closed.");
 		} catch (FileNotFoundException e) {
 			System.out.println("File \"" + fileName + "\" not found.");
 		}
