@@ -1,29 +1,15 @@
 package kevkidev.compta;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Scanner;
-import java.util.stream.Collectors;
 
-record Expense(String label, int amount, String comment) {
-}
-
-class ExpenseService {
-	public void recordExpense(Expense expense) {
-
-	}
-}
+import kevkidev.compta.domain.Expense;
+import kevkidev.compta.service.CsvService;
+import kevkidev.compta.service.ExpenseService;
+import kevkidev.compta.util.Common;
 
 public class AppConsole {
 
@@ -39,20 +25,9 @@ public class AppConsole {
 	static final String IM_S = "im:s";
 	static final String IM_M = "im:m";
 
-	static final String MONTHLY_EXPENSES_TITLE = "Monthly Expenses";
-	static final String QUARTER_EXPENSES_TITLE = "Quarter Expenses";
-	static final String YEARLY_EXPENSES_TITLE = "Yearly Expenses";
-
-	static final String ANNUAL_EXPENSES_TITLE = "Annual Expenses";
-	static final String MONTH_EXPENSES_TITLE = "Month Expenses";
-
-	static final boolean COMMENTED_CSV_LINE = true;
-	static final boolean VERBOSE = true;
-	static final boolean NO_VERBOSE = false;
-
-	private static String lastExportCsvFileName;
-
 	public static void main(String[] args) throws IOException, InterruptedException {
+		var csvService = new CsvService();
+		var expensesService = new ExpenseService(csvService);
 
 		// liste des depenses
 		var monthlyExpenses = new ArrayList<Expense>();
@@ -70,9 +45,9 @@ public class AppConsole {
 		yearlyExpenses.add(new Expense("Service 2", 4900, "4.1€/moins"));
 		yearlyExpenses.add(new Expense("Vacances", 0, ""));
 
-		var sumMonthExpenses = calculateSum(monthlyExpenses);
-		var sumQuarterExpenses = calculateSum(quarterExpenses);
-		var sumYearExpenses = calculateSum(yearlyExpenses);
+		var sumMonthExpenses = expensesService.calculateSum(monthlyExpenses);
+		var sumQuarterExpenses = expensesService.calculateSum(quarterExpenses);
+		var sumYearExpenses = expensesService.calculateSum(yearlyExpenses);
 
 		var annualExpenses = new ArrayList<Expense>();
 		annualExpenses.add(new Expense("Chaque mois x 12", sumMonthExpenses * 12, ""));
@@ -131,38 +106,26 @@ public class AppConsole {
 					// TODO Donc il faut par la suite afficher un avertissement si les valeurs
 					// recalculées ne correspondent pas à celle du fichier
 
-					var lines = new ArrayList<String>();
-					lines.addAll(convertExpensesToCSVformat(monthlyExpenses, MONTHLY_EXPENSES_TITLE));
-					lines.add("#");
-					lines.add("#");
-					lines.addAll(convertExpensesToCSVformat(quarterExpenses, QUARTER_EXPENSES_TITLE));
-					lines.add("#");
-					lines.addAll(convertExpensesToCSVformat(yearlyExpenses, YEARLY_EXPENSES_TITLE));
-					lines.add("#");
-					lines.addAll(convertExpensesToCSVformat(annualExpenses, ANNUAL_EXPENSES_TITLE, COMMENTED_CSV_LINE));
-					lines.add("#");
-					lines.addAll(convertExpensesToCSVformat(monthExpenses, MONTH_EXPENSES_TITLE, COMMENTED_CSV_LINE));
-
-					lastExportCsvFileName = exportAllToCSV(lines);
-					readCSV(lastExportCsvFileName, VERBOSE);
+					expensesService.export(monthExpenses, quarterExpenses, yearlyExpenses, annualExpenses,
+							monthExpenses);
 				}
 				case IM -> {
 					System.out.println("Trying to import last export...");
-					runImportProcess(lastExportCsvFileName);
+					expensesService.importCsv();
 				}
 				case IM_S -> {
 					System.out.println("Trying to found existing CSV files...");
-					var existingFiles = findExistingCsvFile();
+					var existingFiles = csvService.findExistingCsvFile();
 					if (existingFiles.isEmpty()) {
 						System.out.println("Sorry: No existing CSV file found.");
 						break;
 					}
-					var selectedFileName = selectExistingCsvFile(existingFiles);
-					runImportProcess(selectedFileName);
+					var selectedFileName = csvService.selectExistingCsvFile(existingFiles);
+					expensesService.importCsv(selectedFileName);
 				}
 				case IM_M -> {
-					var manualFileName = scanCsvFileName();
-					runImportProcess(manualFileName);
+					var manualFileName = csvService.scanCsvFileName();
+					expensesService.importCsv(manualFileName);
 				}
 				default -> {
 
@@ -170,47 +133,6 @@ public class AppConsole {
 			}
 		} while (!command.equals("q"));
 		System.out.println("# End");
-
-	}
-
-	private static void runImportProcess(final String fileName) throws IOException, InterruptedException {
-		if (null == fileName || fileName.isBlank()) {
-			System.out.println("Sorry: No file found.");
-		} else {
-			importCSV(fileName, VERBOSE);
-			lastExportCsvFileName = fileName;
-		}
-	}
-
-	private static List<String> findExistingCsvFile() {
-		var folder = new File("./");
-		return List.of(folder.list()).stream().filter(file -> file.matches("^(\\w*-)+\\d+-\\d+\\.csv"))
-				.collect(Collectors.toList());
-	}
-
-	private static String scanCsvFileName() throws IOException {
-		System.out.println("No exported file found. Please enter the file name.");
-		BufferedReader fileNameReader = new BufferedReader(new InputStreamReader(System.in));
-		System.out.print("filename ?> ");
-		return fileNameReader.readLine();
-	}
-
-	private static String selectExistingCsvFile(final List<String> fileNames) throws IOException {
-		System.out.println("Please selected a file from the list :");
-		var count = 0;
-		for (Iterator iterator = fileNames.iterator(); iterator.hasNext();) {
-			String filename = (String) iterator.next();
-			count++;
-			System.out.println(count + " : " + filename);
-		}
-
-		BufferedReader fileSelector = new BufferedReader(new InputStreamReader(System.in));
-		System.out.print("Number ?> ");
-		var selectedFileNumber = Integer.parseInt(fileSelector.readLine());
-		if (selectedFileNumber < 0 || selectedFileNumber > count) {
-			selectExistingCsvFile(fileNames);
-		}
-		return fileNames.get(selectedFileNumber - 1);
 
 	}
 
@@ -230,7 +152,7 @@ public class AppConsole {
 
 		System.out.println("---------------------------------------------------");
 		// afficher la somme
-		var decimalSum = convertToCurrency(sum);
+		var decimalSum = Common.convertToCurrency(sum);
 
 		System.out.println("%s : %s   %s".formatted(addBlankToStringBefore("Sum", 20, ' '),
 				addBlankToString(decimalSum.toString(), 15, ' '), addBlankToString("", 50)));
@@ -252,21 +174,12 @@ public class AppConsole {
 
 		System.out.println("---------------------------------------------------");
 		// afficher la somme
-		var decimalSum = convertToCurrency(sum);
+		var decimalSum = Common.convertToCurrency(sum);
 
 		System.out.println("%s : %s".formatted(addBlankToStringBefore("Sum", 20, ' '),
 				ConsoleColors.RED_BOLD + addBlankToString(decimalSum.toString() + ConsoleColors.RESET, 15, ' '),
 				addBlankToString("", 50)));
 		System.out.println("---------------------------------------------------");
-	}
-
-	private static int calculateSum(final List<Expense> data) {
-		return data.stream().map(Expense::amount).reduce((a, b) -> a + b).orElse(0);
-	}
-
-	private static BigDecimal convertToCurrency(int value) {
-		var decimalSum = new BigDecimal((double) value / 100);
-		return decimalSum.setScale(2, RoundingMode.HALF_EVEN);
 	}
 
 	private static String addBlankToString(final String value, final int maxLenght) {
@@ -289,92 +202,6 @@ public class AppConsole {
 			return addBlankToStringBefore(newValue, maxLenght, symbol);
 		}
 		return newValue;
-	}
-
-	private static String exportAllToCSV(List<String> data) throws FileNotFoundException, InterruptedException {
-		var datetime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-		final var FILE_NAME = "compta-export-csv-" + datetime + ".csv";
-		var csvOutputFile = new File(FILE_NAME);
-
-		try (var writer = new PrintWriter(csvOutputFile)) {
-			data.forEach(line -> {
-				writer.println(line);
-			});
-			System.out.println("Exported to " + csvOutputFile.getAbsolutePath());
-		}
-		return FILE_NAME;
-	}
-
-	private static String convertExpenseToCSVformat(final Expense value, final boolean commented) {
-		var result = value.label() + ";" + value.amount() + ";" + value.comment();
-		return commented ? "#" + result : result;
-	}
-
-	private static List<String> convertExpensesToCSVformat(final List<Expense> data, final String title,
-			final boolean commented) {
-		var lines = new ArrayList<String>();
-		lines.add("#" + title);
-		lines.add("#LABEL;AMOUNT;COMMENT");
-		lines.addAll(data.stream().map(e -> convertExpenseToCSVformat(e, commented)).toList());
-		return lines;
-	}
-
-	private static List<String> convertExpensesToCSVformat(final List<Expense> data, final String title) {
-		return convertExpensesToCSVformat(data, title, false);
-	}
-
-	private static void readCSV(final String fileName, final boolean verbose, final boolean withImport)
-			throws InterruptedException {
-
-		System.out.println("Try reading file: " + fileName);
-		try (Scanner sc = new Scanner(new File(fileName))) {
-			System.out.println("CSV file reading ...");
-			while (sc.hasNextLine()) {
-				var currentLine = sc.nextLine();
-				if (verbose) {
-					System.out.println(currentLine);
-				}
-				if ('#' == currentLine.charAt(0)) {
-					continue;
-				}
-				if (withImport) {
-					convertCSVLineToExpense(currentLine, verbose);
-				}
-			}
-			System.out.println("#CSV file closed.");
-		} catch (FileNotFoundException e) {
-			System.out.println("File \"" + fileName + "\" not found.");
-		}
-	}
-
-	private static void importCSV(final String fileName, final boolean verbose)
-			throws FileNotFoundException, InterruptedException {
-		readCSV(fileName, verbose, true);
-	}
-
-	private static void readCSV(final String fileName, final boolean verbose)
-			throws FileNotFoundException, InterruptedException {
-		readCSV(fileName, verbose, false);
-	}
-
-	private static List<Expense> convertCSVLineToExpense(final String line, final boolean verbose)
-			throws FileNotFoundException, InterruptedException {
-//		var fileName = "compta-export-csv-20230103-231916.csv";
-		var expenses = new ArrayList<Expense>();
-
-		var items = line.split(";");
-
-		var label = items[0];
-		var amount = Integer.parseInt(items[1]);
-		var comment = (items.length >= 3) ? items[2] : "";
-
-		var expense = new Expense(label, amount, comment);
-
-		if (verbose) {
-			System.out.println("imported-> " + expense);
-		}
-
-		return expenses;
 	}
 
 }
