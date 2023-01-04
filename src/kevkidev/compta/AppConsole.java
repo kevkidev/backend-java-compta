@@ -72,13 +72,22 @@ public class AppConsole {
 				case H -> {
 					System.out.print("""
 							Commandes possibles :
+								Help
+								h : display the command list
+
 								Afficher les dépenses récurentes :
-								dr :  completes,
-								dr-m : mensuelles,
-								dr-t : trimestrilles,
-								dr-a : annuelles,
-								dr-ta : Afficher le total des dépenses l'année,
-								dr-tm : Afficher le total des dépenses pour le mois.
+									dr :  completes,
+									dr-m : mensuelles,
+									dr-t : trimestrilles,
+									dr-a : annuelles,
+									dr-ta : Afficher le total des dépenses l'année,
+									dr-tm : Afficher le total des dépenses pour le mois.
+
+								Import/Export CSV
+									ex : export all data to one csv
+									im : import the last exported csv of the running instance
+									im-s : scan existing csv files ans let you select one to import it
+									im-m : entre the file's name to import
 							""");
 				}
 				case DR -> {
