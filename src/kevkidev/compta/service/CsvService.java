@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -93,14 +92,7 @@ public class CsvService {
 				.collect(Collectors.toList());
 	}
 
-	public String scanCsvFileName() throws IOException {
-		System.out.println("No exported file found. Please enter the file name.");
-		BufferedReader fileNameReader = new BufferedReader(new InputStreamReader(System.in));
-		System.out.print("filename ?> ");
-		return fileNameReader.readLine();
-	}
-
-	public String selectExistingCsvFile(final List<String> fileNames) throws IOException {
+	public String selectExistingCsvFile(final List<String> fileNames, final BufferedReader input) throws IOException {
 		System.out.println("Please selected a file from the list :");
 		var count = 0;
 		for (Iterator<String> iterator = fileNames.iterator(); iterator.hasNext();) {
@@ -109,11 +101,10 @@ public class CsvService {
 			System.out.println(count + " : " + filename);
 		}
 
-		BufferedReader fileSelector = new BufferedReader(new InputStreamReader(System.in));
 		System.out.print("Number ?> ");
-		var selectedFileNumber = Integer.parseInt(fileSelector.readLine());
+		var selectedFileNumber = Integer.parseInt(input.readLine());
 		if (selectedFileNumber < 0 || selectedFileNumber > count) {
-			selectExistingCsvFile(fileNames);
+			selectExistingCsvFile(fileNames, input);
 		}
 		return fileNames.get(selectedFileNumber - 1);
 

@@ -12,19 +12,15 @@ public class MainExpenseService {
 	public static final String QUARTER_LIST_NAME = "quarterExpenses";
 	public static final String YEARLY_LIST_NAME = "yearlyExpenses";
 
-	public enum Type {
-		MONTHLY, QUARTER, YEARLY
-	}
-
 	public MainExpenseService(final Map<String, List<Expense>> data) {
 		this.data = data;
 	}
 
 	public int calculateSum(final List<Expense> data) {
-		return data.stream().map(Expense::amount).reduce((a, b) -> a + b).orElse(0);
+		return data.stream().map(Expense::getAmount).reduce((a, b) -> a + b).orElse(0);
 	}
 
-	public void recordExpence(final Expense expense, final Type type) {
+	public void recordExpence(final Expense expense, final Expense.Type type) {
 
 		switch (type) {
 			case MONTHLY -> data.get(MONTHLY_LIST_NAME).add(expense);

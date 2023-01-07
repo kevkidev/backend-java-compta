@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import kevkidev.compta.domain.Expense;
+import kevkidev.compta.domain.EntityExpense;
 import kevkidev.compta.service.CsvService.CSVToObjectConverter;
 
 public class CsvExpenseService {
@@ -36,7 +37,12 @@ public class CsvExpenseService {
 	}
 
 	private String convertExpenseToCSVformat(final Expense value, final boolean commented) {
-		var result = value.label() + ";" + value.amount() + ";" + value.comment();
+		var result = "%s;%s;%s".formatted(value.getLabel(), value.getAmount(), value.getComment());
+		return commented ? "#" + result : result;
+	}
+
+	private String convertExpenseToCSVformat(final EntityExpense value, final boolean commented) {
+		var result = "%s;%s;%s;%s".formatted(value.getId(), value.getLabel(), value.getAmount(), value.getComment());
 		return commented ? "#" + result : result;
 	}
 
@@ -44,8 +50,14 @@ public class CsvExpenseService {
 			final boolean commented) {
 		var lines = new ArrayList<String>();
 		lines.add("#" + title);
-		lines.add("#LABEL;AMOUNT;COMMENT");
-		lines.addAll(data.stream().map(e -> convertExpenseToCSVformat(e, commented)).toList());
+		final var COL_NAMES = "LABEL;AMOUNT;COMMENT";
+		if (data.get(0) instanceof EntityExpense) {
+			lines.add("#ID;" + COL_NAMES);
+			lines.addAll(data.stream().map(e -> convertExpenseToCSVformat((EntityExpense) e, commented)).toList());
+		} else {
+			lines.add(COL_NAMES);
+			lines.addAll(data.stream().map(e -> convertExpenseToCSVformat(e, commented)).toList());
+		}
 		return lines;
 	}
 
@@ -54,14 +66,15 @@ public class CsvExpenseService {
 	}
 
 	public void export(final List<Expense> monthlyExpenses, final List<Expense> quarterExpenses,
-			final List<Expense> yearlyExpenses, final List<Expense> annualExpenses, final List<Expense> monthExpenses)
-			throws FileNotFoundException, InterruptedException {
+			final List<Expense> yearlyExpenses, final List<Expense> annualExpenses, final List<Expense> monthExpenses,
+			final long lastGeneratedId) throws FileNotFoundException, InterruptedException {
 
-		final String MONTHLY_EXPENSES_TITLE = "Monthly Expenses";
-		final String QUARTER_EXPENSES_TITLE = "Quarter Expenses";
-		final String YEARLY_EXPENSES_TITLE = "Yearly Expenses";
-		final String ANNUAL_EXPENSES_TITLE = "Annual Expenses";
-		final String MONTH_EXPENSES_TITLE = "Month Expenses";
+		final String MONTHLY_EXPENSES_TITLE = "Monthly_Expenses";
+		final String QUARTER_EXPENSES_TITLE = "Quarter_Expenses";
+		final String YEARLY_EXPENSES_TITLE = "Yearly_Expenses";
+		final String ANNUAL_EXPENSES_TITLE = "Annual_Expenses";
+		final String MONTH_EXPENSES_TITLE = "Month_Expenses";
+		final String LAST_GENERATED_ID_TITLE = "LAST_GENERATED_ID";
 
 		var lines = new ArrayList<String>();
 		lines.addAll(convertExpensesToCSVformat(monthlyExpenses, MONTHLY_EXPENSES_TITLE));
@@ -73,6 +86,9 @@ public class CsvExpenseService {
 		lines.addAll(convertExpensesToCSVformat(annualExpenses, ANNUAL_EXPENSES_TITLE, CsvService.COMMENTED_CSV_LINE));
 		lines.add("#");
 		lines.addAll(convertExpensesToCSVformat(monthExpenses, MONTH_EXPENSES_TITLE, CsvService.COMMENTED_CSV_LINE));
+		lines.add("#");
+		lines.add("#" + LAST_GENERATED_ID_TITLE);
+		lines.add(String.valueOf(lastGeneratedId));
 
 		csvService.exportAllToCSV(lines);
 		csvService.readCSV(CsvService.VERBOSE);
