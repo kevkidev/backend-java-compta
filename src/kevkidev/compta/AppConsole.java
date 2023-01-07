@@ -4,30 +4,35 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import kevkidev.compta.domain.Expense;
+import kevkidev.compta.service.CsvExpenseService;
 import kevkidev.compta.service.CsvService;
-import kevkidev.compta.service.ExpenseService;
+import kevkidev.compta.service.MainExpenseService;
 import kevkidev.compta.util.Common;
 
 public class AppConsole {
 
 	static final String H = "h";
-	static final String DR = "dr";
-	static final String DR_M = "dr:m";
-	static final String DR_T = "dr:t";
-	static final String DR_A = "dr:a";
-	static final String DR_TA = "dr:ta";
-	static final String DR_TM = "dr:tm";
+	static final String DR = "r";
+	static final String DR_M = "r:m";
+	static final String DR_T = "r:t";
+	static final String DR_A = "r:a";
+	static final String DR_TA = "r:ta";
+	static final String DR_TM = "r:tm";
 	static final String EX = "ex";
 	static final String IM = "im";
 	static final String IM_S = "im:s";
 	static final String IM_M = "im:m";
+	static final String C = "c";
+	static final String D = "d";
+	static final String U = "u";
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		var csvService = new CsvService();
-		var expensesService = new ExpenseService(csvService);
+		var csvExpensesService = new CsvExpenseService(csvService);
 
 		// liste des depenses
 		var monthlyExpenses = new ArrayList<Expense>();
@@ -45,9 +50,15 @@ public class AppConsole {
 		yearlyExpenses.add(new Expense("Service 2", 4900, "4.1€/moins"));
 		yearlyExpenses.add(new Expense("Vacances", 0, ""));
 
-		var sumMonthExpenses = expensesService.calculateSum(monthlyExpenses);
-		var sumQuarterExpenses = expensesService.calculateSum(quarterExpenses);
-		var sumYearExpenses = expensesService.calculateSum(yearlyExpenses);
+		var lists = new HashMap<String, List<Expense>>();
+		lists.put("monthlyExpenses", monthlyExpenses);
+		lists.put("quarterExpenses", quarterExpenses);
+		lists.put("yearlyExpenses", yearlyExpenses);
+		var mainExpensesService = new MainExpenseService(lists);
+
+		var sumMonthExpenses = mainExpensesService.calculateSum(monthlyExpenses);
+		var sumQuarterExpenses = mainExpensesService.calculateSum(quarterExpenses);
+		var sumYearExpenses = mainExpensesService.calculateSum(yearlyExpenses);
 
 		var annualExpenses = new ArrayList<Expense>();
 		annualExpenses.add(new Expense("Chaque mois x 12", sumMonthExpenses * 12, ""));
@@ -76,12 +87,17 @@ public class AppConsole {
 								h : display the command list
 
 								Afficher les dépenses récurentes :
-									dr :  completes,
-									dr-m : mensuelles,
-									dr-t : trimestrilles,
-									dr-a : annuelles,
-									dr-ta : Afficher le total des dépenses l'année,
-									dr-tm : Afficher le total des dépenses pour le mois.
+									r :  liste completes,
+									r-m : liste mensuelles,
+									r-t : liste trimestrilles,
+									r-a : lise annuelles,
+									r-ta : Afficher le total des dépenses l'année,
+									r-tm : Afficher le total des dépenses pour le mois.
+
+								Editer dépenses:
+									c : create expense
+									u : update expense
+									d : delete expense
 
 								Import/Export CSV
 									ex : export all data to one csv
@@ -115,12 +131,12 @@ public class AppConsole {
 					// TODO Donc il faut par la suite afficher un avertissement si les valeurs
 					// recalculées ne correspondent pas à celle du fichier
 
-					expensesService.export(monthExpenses, quarterExpenses, yearlyExpenses, annualExpenses,
+					csvExpensesService.export(monthExpenses, quarterExpenses, yearlyExpenses, annualExpenses,
 							monthExpenses);
 				}
 				case IM -> {
 					System.out.println("Trying to import last export...");
-					expensesService.importCsv();
+					csvExpensesService.importCsv();
 				}
 				case IM_S -> {
 					System.out.println("Trying to found existing CSV files...");
@@ -130,11 +146,47 @@ public class AppConsole {
 						break;
 					}
 					var selectedFileName = csvService.selectExistingCsvFile(existingFiles);
-					expensesService.importCsv(selectedFileName);
+					csvExpensesService.importCsv(selectedFileName);
 				}
 				case IM_M -> {
 					var manualFileName = csvService.scanCsvFileName();
-					expensesService.importCsv(manualFileName);
+					csvExpensesService.importCsv(manualFileName);
+				}
+				case C -> {
+					System.out.println("Creating expense:");
+					BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+
+					System.out.print("Expense label ?> ");
+					var label = input.readLine();
+
+					System.out.print("Expense amount (int) ?> ");
+					var amount = Integer.parseInt(input.readLine());
+
+					System.out.print("Expense comment ?> ");
+					var comment = input.readLine();
+					var newExpense = new Expense(label, amount, comment);
+
+					System.out.print("Expense type [1: MONTHLY, 2: QUARTER, 3: YEARLY] ?> ");
+					var type = input.readLine();
+					var expensetype = MainExpenseService.Type.MONTHLY;
+
+					switch (type) {
+						case "1" -> expensetype = MainExpenseService.Type.MONTHLY;
+						case "2" -> expensetype = MainExpenseService.Type.QUARTER;
+						case "3" -> expensetype = MainExpenseService.Type.YEARLY;
+						default -> throw new IllegalArgumentException("Unexpected type: " + type);
+					}
+
+					mainExpensesService.recordExpence(newExpense, expensetype);
+					System.out.println("New expense : " + newExpense);
+				}
+				case U -> {
+					System.out.println("Update");
+
+				}
+				case D -> {
+					System.out.println("delete");
+
 				}
 				default -> {
 

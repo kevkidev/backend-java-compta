@@ -8,12 +8,12 @@ import java.util.List;
 import kevkidev.compta.domain.Expense;
 import kevkidev.compta.service.CsvService.CSVToObjectConverter;
 
-public class ExpenseService {
+public class CsvExpenseService {
 
 	private CsvService csvService;
 	public CSVToObjectConverter<Expense> convertCSVLineToExpense;
 
-	public ExpenseService(CsvService csvService) {
+	public CsvExpenseService(CsvService csvService) {
 		this.csvService = csvService;
 		convertCSVLineToExpense = (String line, boolean verbose) -> {
 			return convertCSVLineToExpense(line, verbose);
@@ -76,10 +76,6 @@ public class ExpenseService {
 
 		csvService.exportAllToCSV(lines);
 		csvService.readCSV(CsvService.VERBOSE);
-	}
-
-	public int calculateSum(final List<Expense> data) {
-		return data.stream().map(Expense::amount).reduce((a, b) -> a + b).orElse(0);
 	}
 
 	public void importCsv(String fileName) throws IOException, InterruptedException {
