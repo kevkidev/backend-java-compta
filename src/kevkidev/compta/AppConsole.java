@@ -7,13 +7,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import kevkidev.compta.common.Util;
 import kevkidev.compta.domain.EntityExpense;
 import kevkidev.compta.domain.Expense;
 import kevkidev.compta.service.CsvExpenseService;
 import kevkidev.compta.service.CsvService;
+import kevkidev.compta.service.IdGeneratorService;
 import kevkidev.compta.service.MainExpenseService;
-import kevkidev.compta.service.MainService;
-import kevkidev.compta.util.Common;
+import kevkidev.nutri.domain.Aliment;
+import kevkidev.nutri.domain.Intake;
+import kevkidev.nutri.domain.Menu;
+import kevkidev.nutri.service.AlimentConsoleService;
+import kevkidev.nutri.service.IntakeConsoleService;
+import kevkidev.nutri.service.MenuConsoleService;
 
 public class AppConsole {
 	static final String CMD_HELP = "h";
@@ -41,10 +47,37 @@ public class AppConsole {
 	static final String CMD_DELETE_QUATER_EXPENSE = "dq";
 	static final String CMD_DELETE_YEARLY_EXPENSE = "dy";
 
-	public static void main(String[] args) throws IOException, InterruptedException {
-		var mainService = new MainService();
+	public static void main(String[] args) throws IOException, InterruptedException, CloneNotSupportedException {
+		var idGenerator = new IdGeneratorService();
+
 		var csvService = new CsvService();
 		var csvExpensesService = new CsvExpenseService(csvService);
+		var alimentConsoleService = new AlimentConsoleService();
+		var intakeConsoleService = new IntakeConsoleService(alimentConsoleService);
+		var menuConsoleService = new MenuConsoleService();
+
+		// liste aliments
+		var aliments = new ArrayList<Aliment>();
+		var ali1 = new Aliment(idGenerator.generateAlimentId(), "Haricots rouges", 80, 3, 5, 6);
+		var ali2 = new Aliment(idGenerator.generateAlimentId(), "Riz blanc", 120, 5, 8, 7);
+		aliments.add(ali1);
+		aliments.add(ali2);
+		aliments.add(new Aliment(idGenerator.generateAlimentId(), "Avocat", 45, 4, 22, 8));
+
+		var itk1 = new Intake(idGenerator.generateIntakeId(), ali1, 500);
+		var itk2 = new Intake(idGenerator.generateIntakeId(), ali2, 250);
+		var itk3 = (Intake) itk2.clone();
+		itk3.setId(idGenerator.generateAlimentId());
+
+		var intakes = new ArrayList<Intake>();
+		intakes.add(itk1);
+		intakes.add(itk2);
+
+		var menus = new ArrayList<Menu>();
+		var menu1 = new Menu(idGenerator.generateMenuId(), "Riz/Hricots Rouge", new ArrayList<>());
+		menu1.getIntakes().add(new Intake(idGenerator.generateMenuId(), ali1, 200));
+		menu1.getIntakes().add(new Intake(idGenerator.generateMenuId(), ali2, 300));
+		menus.add(menu1);
 
 		// liste des depenses
 		var monthlyExpenses = new ArrayList<Expense>();
@@ -170,7 +203,7 @@ public class AppConsole {
 					 */
 
 					csvExpensesService.export(monthExpenses, quarterExpenses, yearlyExpenses, annualExpenses,
-							monthExpenses, mainService.getIdCounter());
+							monthExpenses, idGenerator.getIdCounter());
 				}
 				case CMD_IMPORT_TO_CSV -> {
 					// TODO Donc il faut par la suite afficher un avertissement si les valeurs
@@ -236,8 +269,40 @@ public class AppConsole {
 					System.out.println("delete");
 
 				}
-				default -> {
+				case IntakeConsoleService.CMD_READ_ALL -> {
+					alimentConsoleService.readAll(input, aliments);
+				}
+				case IntakeConsoleService.CMD_CREATE -> {
+					var aliment = alimentConsoleService.record(input, idGenerator);
+					aliments.add(aliment);
+				}
+				case MenuConsoleService.CMD_READ_ALL -> {
+					menuConsoleService.readAll(input, menus);
+				}
+				case MenuConsoleService.CMD_READ -> {
+					var menuId = menuConsoleService.select(input);
+					var menu = menus.stream().filter(e -> e.getId() == menuId).findFirst().get();
+					System.out.println(
+							"Reading menu : " + Util.colorToPrimary(menu.getName()) + " contains aliments ...");
+					intakeConsoleService.displayTable(menu.getIntakes(), 777, 554, 112);
+				}
+				case MenuConsoleService.CMD_CREATE -> {
+					var menu = menuConsoleService.record(input, idGenerator);
+					menus.add(menu);
+				}
+				case MenuConsoleService.CMD_INFLATE -> {
+					System.out.println("Adding intake to menu ...");
+					var menuId = menuConsoleService.select(input);
+					var alimentId = alimentConsoleService.select(input);
+					var aliment = aliments.stream().filter(e -> e.getId() == alimentId).findFirst().get();
+					var intake = intakeConsoleService.record(input, idGenerator);
+					intake.setAliment(aliment);
 
+					var menu = menus.stream().filter(e -> e.getId() == menuId).findFirst().get();
+					menu.getIntakes().add(intake);
+					System.out.println(Util.colorToSuccess("Intake added to menu."));
+				}
+				default -> {
 				}
 			}
 		} while (!command.equals("q"));
@@ -299,7 +364,7 @@ public class AppConsole {
 
 		System.out.println("---------------------------------------------------");
 		// afficher la somme
-		var decimalSum = Common.convertToCurrency(sum);
+		var decimalSum = Util.convertToCurrency(sum);
 
 		System.out.println("%s : %s   %s".formatted(addBlankToStringBefore("Sum", 20, ' '),
 				addBlankToString(decimalSum.toString(), 15, ' '), addBlankToString("", 50)));
@@ -321,7 +386,7 @@ public class AppConsole {
 
 		System.out.println("---------------------------------------------------");
 		// afficher la somme
-		var decimalSum = Common.convertToCurrency(sum);
+		var decimalSum = Util.convertToCurrency(sum);
 
 		System.out.println("%s : %s".formatted(addBlankToStringBefore("Sum", 20, ' '),
 				ConsoleColors.RED_BOLD + addBlankToString(decimalSum.toString() + ConsoleColors.RESET, 15, ' '),
