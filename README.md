@@ -1,5 +1,5 @@
 # backend-java-compta
-Gestion de budget perso
+Gestion de budget/nutri perso
 
 # deploy
 
