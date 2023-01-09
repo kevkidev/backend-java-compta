@@ -43,9 +43,40 @@ public class CsvService {
 		lastExportCsvFileName = FILE_NAME;
 	}
 
+	public List<String> findExistingCsvFile() {
+		var folder = new File("./");
+		return List.of(folder.list()).stream().filter(file -> file.matches("^(\\w*-)+\\d+-\\d+\\.csv"))
+				.collect(Collectors.toList());
+	}
+
+	public void importCsv(final CSVToObjectConverter<?> converter) throws IOException, InterruptedException {
+		importCsv(lastExportCsvFileName, converter);
+	}
+
+	public void importCsv(final String fileName, final CSVToObjectConverter<?> converter)
+			throws IOException, InterruptedException {
+		if (null == fileName || fileName.isBlank()) {
+			System.out.println("Sorry: No file found.");
+		} else {
+			readCSV(fileName, VERBOSE, converter);
+			lastExportCsvFileName = fileName;
+		}
+	}
+
+	/**
+	 * Read the last exported file
+	 *
+	 * @param verbose
+	 * @throws FileNotFoundException
+	 * @throws InterruptedException
+	 */
+	public void readCSV(final boolean verbose) throws FileNotFoundException, InterruptedException {
+		readCSV(lastExportCsvFileName, verbose, null);
+	}
+
 	/**
 	 * Read un CSV file. Make import if converter is not null
-	 * 
+	 *
 	 * @param fileName
 	 * @param verbose
 	 * @param converter
@@ -75,28 +106,11 @@ public class CsvService {
 		}
 	}
 
-	/**
-	 * Read the last exported file
-	 * 
-	 * @param verbose
-	 * @throws FileNotFoundException
-	 * @throws InterruptedException
-	 */
-	public void readCSV(final boolean verbose) throws FileNotFoundException, InterruptedException {
-		readCSV(lastExportCsvFileName, verbose, null);
-	}
-
-	public List<String> findExistingCsvFile() {
-		var folder = new File("./");
-		return List.of(folder.list()).stream().filter(file -> file.matches("^(\\w*-)+\\d+-\\d+\\.csv"))
-				.collect(Collectors.toList());
-	}
-
 	public String selectExistingCsvFile(final List<String> fileNames, final BufferedReader input) throws IOException {
 		System.out.println("Please selected a file from the list :");
 		var count = 0;
 		for (Iterator<String> iterator = fileNames.iterator(); iterator.hasNext();) {
-			String filename = (String) iterator.next();
+			String filename = iterator.next();
 			count++;
 			System.out.println(count + " : " + filename);
 		}
@@ -108,19 +122,5 @@ public class CsvService {
 		}
 		return fileNames.get(selectedFileNumber - 1);
 
-	}
-
-	public void importCsv(final String fileName, final CSVToObjectConverter<?> converter)
-			throws IOException, InterruptedException {
-		if (null == fileName || fileName.isBlank()) {
-			System.out.println("Sorry: No file found.");
-		} else {
-			readCSV(fileName, VERBOSE, converter);
-			lastExportCsvFileName = fileName;
-		}
-	}
-
-	public void importCsv(final CSVToObjectConverter<?> converter) throws IOException, InterruptedException {
-		importCsv(lastExportCsvFileName, converter);
 	}
 }

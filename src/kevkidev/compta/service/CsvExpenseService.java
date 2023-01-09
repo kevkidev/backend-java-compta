@@ -5,22 +5,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import kevkidev.compta.domain.Expense;
+import kevkidev.compta.common.Util;
 import kevkidev.compta.domain.EntityExpense;
+import kevkidev.compta.domain.Expense;
 import kevkidev.compta.service.CsvService.CSVToObjectConverter;
 
 public class CsvExpenseService {
-
-	private CsvService csvService;
-	public CSVToObjectConverter<Expense> convertCSVLineToExpense;
-
-	public CsvExpenseService(CsvService csvService) {
-		this.csvService = csvService;
-		convertCSVLineToExpense = (String line, boolean verbose) -> {
-			return convertCSVLineToExpense(line, verbose);
-		};
-	}
-
 	private static List<Expense> convertCSVLineToExpense(final String line, final boolean verbose) {
 		var expenses = new ArrayList<Expense>();
 		var items = line.split(";");
@@ -36,14 +26,26 @@ public class CsvExpenseService {
 		return expenses;
 	}
 
-	private String convertExpenseToCSVformat(final Expense value, final boolean commented) {
-		var result = "%s;%s;%s".formatted(value.getLabel(), value.getAmount(), value.getComment());
-		return commented ? "#" + result : result;
+	public static final String CMD_EXPORT_TO_CSV = "e";
+	public static final String CMD_IMPORT_TO_CSV = "i";
+	public static final String CMD_IMPORT_TO_CSV_AFTER_SCAN = "is";
+	public static final String CMD_IMPORT_TO_CSV_AFTER_MANUEL = "im";
+
+	final String CMD_HELP = "h";
+
+	private CsvService csvService;
+
+	public CSVToObjectConverter<Expense> convertCSVLineToExpense;
+
+	public CsvExpenseService(CsvService csvService) {
+		this.csvService = csvService;
+		convertCSVLineToExpense = (String line, boolean verbose) -> {
+			return convertCSVLineToExpense(line, verbose);
+		};
 	}
 
-	private String convertExpenseToCSVformat(final EntityExpense value, final boolean commented) {
-		var result = "%s;%s;%s;%s".formatted(value.getId(), value.getLabel(), value.getAmount(), value.getComment());
-		return commented ? "#" + result : result;
+	private List<String> convertExpensesToCSVformat(final List<Expense> data, final String title) {
+		return convertExpensesToCSVformat(data, title, false);
 	}
 
 	private List<String> convertExpensesToCSVformat(final List<Expense> data, final String title,
@@ -61,8 +63,31 @@ public class CsvExpenseService {
 		return lines;
 	}
 
-	private List<String> convertExpensesToCSVformat(final List<Expense> data, final String title) {
-		return convertExpensesToCSVformat(data, title, false);
+	private String convertExpenseToCSVformat(final EntityExpense value, final boolean commented) {
+		var result = "%s;%s;%s;%s".formatted(value.getId(), value.getLabel(), value.getAmount(), value.getComment());
+		return commented ? "#" + result : result;
+	}
+
+	private String convertExpenseToCSVformat(final Expense value, final boolean commented) {
+		var result = "%s;%s;%s".formatted(value.getLabel(), value.getAmount(), value.getComment());
+		return commented ? "#" + result : result;
+	}
+
+	public void displayHelp() {
+		final var RIGHT_SPACE_SIZE = 5;
+
+		var part3 = """
+Import/Export CSV
+%s: export all data to one csv
+%s: import the last exported csv of the running instance
+%s: scan existing CSV files and let you select one to import it
+%s: entre the file's name to import
+""".formatted(Util.addBlankToString(CMD_EXPORT_TO_CSV, RIGHT_SPACE_SIZE),
+				Util.addBlankToString(CMD_IMPORT_TO_CSV, RIGHT_SPACE_SIZE),
+				Util.addBlankToString(CMD_IMPORT_TO_CSV_AFTER_SCAN, RIGHT_SPACE_SIZE),
+				Util.addBlankToString(CMD_IMPORT_TO_CSV_AFTER_MANUEL, RIGHT_SPACE_SIZE));
+
+		System.out.println(part3);
 	}
 
 	public void export(final List<Expense> monthlyExpenses, final List<Expense> quarterExpenses,
@@ -94,11 +119,11 @@ public class CsvExpenseService {
 		csvService.readCSV(CsvService.VERBOSE);
 	}
 
-	public void importCsv(String fileName) throws IOException, InterruptedException {
-		csvService.importCsv(fileName, convertCSVLineToExpense);
-	}
-
 	public void importCsv() throws IOException, InterruptedException {
 		csvService.importCsv(convertCSVLineToExpense);
+	}
+
+	public void importCsv(String fileName) throws IOException, InterruptedException {
+		csvService.importCsv(fileName, convertCSVLineToExpense);
 	}
 }

@@ -20,7 +20,6 @@ public class IntakeConsoleService {
 	public IntakeConsoleService(AlimentConsoleService alimentConsoleService) {
 		super();
 		this.alimentConsoleService = alimentConsoleService;
-		System.out.println(TABLE_COLS_FORMAT);
 	}
 
 	public void displayTable(final List<Intake> data, final int energySum, final int proteinSum,
