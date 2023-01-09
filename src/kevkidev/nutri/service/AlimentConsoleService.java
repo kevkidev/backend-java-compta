@@ -14,10 +14,10 @@ public class AlimentConsoleService {
 
 	private final String TITLE_ID = "id";
 	private final String TITLE_NAME = "Name";
-	private final String TITLE_ENERGY = "Enr (int)";
-	private final String TITLE_PROT = "Prot (int)";
-	private final String TITLE_CARBO = "Carbo (int)";
-	private final String TITLE_FAT = "Fat (int)";
+	private final String TITLE_ENERGY = "Enr (int,cal)";
+	private final String TITLE_PROT = "Prot (int,g)";
+	private final String TITLE_CARBO = "Carbo (int,g)";
+	private final String TITLE_FAT = "Fat (int,g)";
 
 	final int NAME_COL_WIDTH = 20;
 	final int ENERGY_COL_WIDTH = TITLE_ENERGY.length();
@@ -28,7 +28,7 @@ public class AlimentConsoleService {
 
 	public static final String CMD_READ_ALL = "ali";
 	public static final String CMD_CREATE = "ali:c";
-	public static final String TABLE_COLS_FORMAT = " %s : %s : %s : %s : %s ";
+	public static final String TABLE_COLS_FORMAT = " %s : %s : %s : %s : %s : %s ";
 
 	public void readAll(final BufferedReader input, final List<Aliment> data) {
 		System.out.println("Alimetns");
@@ -38,7 +38,7 @@ public class AlimentConsoleService {
 	public void displayTable(final List<Aliment> data) {
 		var tableWidth = calculateTableWidth();
 		var separator = Util.buildVerticalSeparator(tableWidth);
-		var header = TABLE_COLS_FORMAT.formatted(buildHeaderValues());
+		var header = TABLE_COLS_FORMAT.formatted(buildHeaderValues().toArray());
 
 		System.out.println(separator);
 		System.out.println(header);
@@ -47,7 +47,7 @@ public class AlimentConsoleService {
 		for (var i = 0; i < data.size(); i++) {
 			var value = (Aliment) data.get(i);
 
-			var line = TABLE_COLS_FORMAT.formatted(buildBodyValues(value));
+			var line = TABLE_COLS_FORMAT.formatted(buildBodyValues(value).toArray());
 			if (i % 2 != 0) {
 				line = Util.invertColor(line);
 			}
@@ -58,22 +58,25 @@ public class AlimentConsoleService {
 
 	public List<String> buildHeaderValues() {
 		return new ArrayList<String>(Arrays.asList(Util.addBlankToString(TITLE_ID, ID_COL_WIDTH),
-				Util.addBlankToString(TITLE_NAME, 20), Util.addBlankToString(TITLE_ENERGY, 0),
-				Util.addBlankToString(TITLE_PROT, 0), Util.addBlankToString(TITLE_CARBO, 0)));
+				Util.addBlankToString(TITLE_NAME, NAME_COL_WIDTH), Util.addBlankToString(TITLE_ENERGY, 0),
+				Util.addBlankToString(TITLE_PROT, 0), Util.addBlankToString(TITLE_CARBO, 0),
+				Util.addBlankToString(TITLE_FAT, 0)));
 	}
 
 	public List<String> buildBodyValues(final Aliment value) {
 		return new ArrayList<String>(Arrays.asList(Util.addBlankToString(String.valueOf(value.getId()), ID_COL_WIDTH),
 				Util.addBlankToString(value.getName(), NAME_COL_WIDTH),
-				Util.addBlankToString(String.valueOf(value.getEnergy()), TITLE_ENERGY.length()),
-				Util.addBlankToString(String.valueOf(value.getProteinCount()), TITLE_PROT.length()),
-				Util.addBlankToString(String.valueOf(value.getCarbohydrateCount()), TITLE_CARBO.length()),
-				Util.addBlankToString(String.valueOf(value.getFatCount()), TITLE_FAT.length())));
+				Util.addBlankToString(String.valueOf((double) value.getEnergy() / 100d), TITLE_ENERGY.length()),
+				Util.addBlankToString(String.valueOf((double) value.getProteinCount() / 100d), TITLE_PROT.length()),
+				Util.addBlankToString(String.valueOf((double) value.getCarbohydrateCount() / 100d),
+						TITLE_CARBO.length()),
+				Util.addBlankToString(String.valueOf((double) value.getFatCount() / 100d), TITLE_FAT.length())));
 	}
 
 	public int calculateTableWidth() {
-		return TITLE_ID.length() + ID_COL_WIDTH + TITLE_NAME.length() + NAME_COL_WIDTH + TITLE_ENERGY.length()
-				+ TITLE_PROT.length() + TITLE_CARBO.length() + TITLE_FAT.length();
+		var colFormats = TABLE_COLS_FORMAT.split(":");
+		return ID_COL_WIDTH + NAME_COL_WIDTH + TITLE_ENERGY.length() + TITLE_PROT.length() + TITLE_CARBO.length()
+				+ TITLE_FAT.length() + colFormats.length * (colFormats[0].length() - 1); // %s = 1 real space but 2 char
 	}
 
 	public Aliment record(final BufferedReader input, final IdGeneratorService idGenerator) throws IOException {

@@ -54,7 +54,16 @@ public class Util {
 		return Util.changeColor(data, ConsoleColors.BLUE);
 	}
 
+	public static String colorToWarnig(final String data) {
+		return Util.changeColor(data, ConsoleColors.YELLOW);
+	}
+
+	public static String colorToDanger(final String data) {
+		return Util.changeColor(data, ConsoleColors.YELLOW);
+	}
+
 	public static String invertColor(final String data) {
 		return Util.changeColor(data, ConsoleColors.WHITE + ConsoleColors.BLACK_BACKGROUND);
 	}
+
 }

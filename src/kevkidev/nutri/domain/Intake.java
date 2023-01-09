@@ -3,17 +3,30 @@ package kevkidev.nutri.domain;
 public class Intake implements Cloneable {
 	private long id;
 	private Aliment aliment;
-	private int quantity; // grammes
+	private int quantity; // unit = g
+	private Aliment calculadedAliment;
 
 	public Intake() {
 		super();
 	}
 
-	public Intake(long id, Aliment aliment, int quntity) {
+	public Intake(long id, Aliment aliment, int quntity) throws CloneNotSupportedException {
 		super();
 		this.id = id;
 		this.aliment = aliment;
 		this.quantity = quntity;
+		this.calculadedAliment = (Aliment) aliment.clone();
+	}
+
+	public void calculateNutriments() {
+		calculadedAliment.setEnergy(calculatePercent(aliment.getEnergy()));
+		calculadedAliment.setCarbohydrateCount(calculatePercent(aliment.getCarbohydrateCount()));
+		calculadedAliment.setFatCount(calculatePercent(aliment.getFatCount()));
+		calculadedAliment.setProteinCount(calculatePercent(aliment.getProteinCount()));
+	}
+
+	private int calculatePercent(int value) {
+		return (int) ((double) value / 100d * (double) quantity);
 	}
 
 	public long getId() {
@@ -22,10 +35,6 @@ public class Intake implements Cloneable {
 
 	public void setId(long id) {
 		this.id = id;
-	}
-
-	public Aliment getAliment() {
-		return aliment;
 	}
 
 	public void setAliment(Aliment aliment) {
@@ -38,6 +47,14 @@ public class Intake implements Cloneable {
 
 	public void setQuantity(int quntity) {
 		this.quantity = quntity;
+	}
+
+	public Aliment getCalculadedAliment() {
+		return calculadedAliment;
+	}
+
+	public void setCalculadedAliment(Aliment calculadedAliment) {
+		this.calculadedAliment = calculadedAliment;
 	}
 
 	@Override

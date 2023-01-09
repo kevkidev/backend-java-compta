@@ -10,7 +10,7 @@ import kevkidev.nutri.domain.Intake;
 
 public class IntakeConsoleService {
 
-	private final String TITLE_QUANTITY = "Qty (int)";
+	private final String TITLE_QUANTITY = "Qty (int,g)";
 	public static final String CMD_READ_ALL = "itk";
 	public static final String CMD_CREATE = "itk:c";
 
@@ -24,8 +24,9 @@ public class IntakeConsoleService {
 	}
 
 	public void displayTable(final List<Intake> data, final int energySum, final int proteinSum,
-			final int carbohydrateSum) {
-		var tableWidth = alimentConsoleService.calculateTableWidth() + TITLE_QUANTITY.length();
+			final int carbohydrateSum, final int fatSum, final int quantitySum, final int metaBase,
+			final int dailyEnergy) {
+		var tableWidth = alimentConsoleService.calculateTableWidth() + TITLE_QUANTITY.length() + 3;
 		var separator = Util.buildVerticalSeparator(tableWidth);
 
 		System.out.println(separator);
@@ -38,7 +39,7 @@ public class IntakeConsoleService {
 
 		for (var i = 0; i < data.size(); i++) {
 			var value = (Intake) data.get(i);
-			var cells = alimentConsoleService.buildBodyValues(value.getAliment());
+			var cells = alimentConsoleService.buildBodyValues(value.getCalculadedAliment());
 			cells.add(Util.addBlankToString(String.valueOf(value.getQuantity()), TITLE_QUANTITY.length()));
 
 			var line = TABLE_COLS_FORMAT.formatted(cells.toArray());
@@ -51,15 +52,26 @@ public class IntakeConsoleService {
 
 		var space1 = Util.addBlankToString("", alimentConsoleService.ID_COL_WIDTH);
 		var title = Util.addBlankToStringBefore("Sum", alimentConsoleService.NAME_COL_WIDTH, ' ');
-		var energySumFormated = Util.addBlankToString(String.valueOf(energySum),
+		var energyDouble = (double) energySum / 100d;
+		var energySumFormated = Util.addBlankToString(String.valueOf(energyDouble),
 				alimentConsoleService.ENERGY_COL_WIDTH);
-		var proteinSumFormated = Util.addBlankToString(String.valueOf(proteinSum),
-				alimentConsoleService.PROT_COL_WIDTH);
-		var carbohydrateSumFormated = Util.addBlankToString(String.valueOf(carbohydrateSum),
-				alimentConsoleService.CARBO_COL_WIDTH);
 
-		var line = " %s   %s : %s : %s : %s ".formatted(space1, title, energySumFormated, proteinSumFormated,
-				carbohydrateSumFormated);
+		if (energyDouble < metaBase) {
+			energySumFormated = Util.colorToDanger(energySumFormated);
+		} else if (energyDouble > dailyEnergy) {
+			energySumFormated = Util.colorToWarnig(energySumFormated);
+		}
+
+		var proteinSumFormated = Util.addBlankToString(String.valueOf((double) proteinSum / 100d),
+				alimentConsoleService.PROT_COL_WIDTH);
+		var carbohydrateSumFormated = Util.addBlankToString(String.valueOf((double) carbohydrateSum / 100d),
+				alimentConsoleService.CARBO_COL_WIDTH);
+		var fatSumFormated = Util.addBlankToString(String.valueOf((double) fatSum / 100d),
+				alimentConsoleService.FAT_COL_WIDTH);
+		var qtySumFormated = Util.addBlankToString(String.valueOf(quantitySum), TITLE_QUANTITY.length());
+
+		var line = " %s   %s : %s : %s : %s : %s : %s ".formatted(space1, title, energySumFormated, proteinSumFormated,
+				carbohydrateSumFormated, fatSumFormated, qtySumFormated);
 		System.out.println(line);
 		System.out.println(separator);
 	}
@@ -69,6 +81,7 @@ public class IntakeConsoleService {
 
 		var newIntake = new Intake();
 		newIntake.setId(idGenerator.generateIntakeId());
+		System.out.println("	quantity (g) ?> ");
 		newIntake.setQuantity(Integer.parseInt(input.readLine()));
 
 		System.out.println(Util.colorToSuccess("Created : " + newIntake));

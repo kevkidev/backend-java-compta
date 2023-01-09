@@ -1,12 +1,12 @@
 package kevkidev.nutri.domain;
 
-public class Aliment {
+public class Aliment implements Cloneable {
 	private long id;
 	private String name;
-	private int energy; // per 100g
-	private int proteinCount; // per 100g
-	private int carbohydrateCount; // per 100g
-	private int fatCount; // per 100g
+	private int energy; // per 100g; unit g*100
+	private int proteinCount; // per 100g; unit g*100
+	private int carbohydrateCount; // per 100g unit*100
+	private int fatCount; // per 100g; unit g*100
 
 	public Aliment() {
 		super();
@@ -75,4 +75,10 @@ public class Aliment {
 		return "Aliment [id=" + id + ", name=" + name + ", energy=" + energy + ", proteinCount=" + proteinCount
 				+ ", carbohydrateCount=" + carbohydrateCount + ", fatCount=" + fatCount + "]";
 	}
+
+	@Override
+	protected Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
+
 }

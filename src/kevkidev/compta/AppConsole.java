@@ -15,6 +15,7 @@ import kevkidev.compta.service.CsvService;
 import kevkidev.compta.service.IdGeneratorService;
 import kevkidev.compta.service.MainExpenseService;
 import kevkidev.nutri.domain.Aliment;
+import kevkidev.nutri.domain.HumainProfil;
 import kevkidev.nutri.domain.Intake;
 import kevkidev.nutri.domain.Menu;
 import kevkidev.nutri.service.AlimentConsoleService;
@@ -47,7 +48,18 @@ public class AppConsole {
 	static final String CMD_DELETE_QUATER_EXPENSE = "dq";
 	static final String CMD_DELETE_YEARLY_EXPENSE = "dy";
 
+	static final int SEDENTATRY_ACTIVITY_LEVEL = 120; // unit= unit*100; no sport
+	static final int LIGHT_ACTIVE_ACTIVITY_LEVEL = 140; // unit= unit*100; 1-3 times /week
+	static final int MODERATE_ACTIVE_ACTIVITY_LEVEL = 160; // unit= unit*100; sport 3-5 times/week
+	static final int VERY_ACTIVE_ACTIVITY_LEVEL = 170; // unit= unit*100; sport 6-7 times/week
+	static final int EXTREME_ACTIVE_ACTIVITY_LEVEL = 190; // unit= unit*100; sport every day and hard job
+
 	public static void main(String[] args) throws IOException, InterruptedException, CloneNotSupportedException {
+		var profil = new HumainProfil(110, 180, 42);
+		final var MB = (int) profil.calculateManMetaBase();
+		final var PROT = profil.getWeight();
+		final var DAILY_ENERGY = (double) MODERATE_ACTIVE_ACTIVITY_LEVEL / 100d * (double) MB;
+
 		var idGenerator = new IdGeneratorService();
 
 		var csvService = new CsvService();
@@ -59,24 +71,25 @@ public class AppConsole {
 		// liste aliments
 		var aliments = new ArrayList<Aliment>();
 		var ali1 = new Aliment(idGenerator.generateAlimentId(), "Haricots rouges", 80, 3, 5, 6);
-		var ali2 = new Aliment(idGenerator.generateAlimentId(), "Riz blanc", 120, 5, 8, 7);
 		aliments.add(ali1);
+		var ali2 = new Aliment(idGenerator.generateAlimentId(), "Riz blanc", 15100, 290, 3110, 140);
 		aliments.add(ali2);
-		aliments.add(new Aliment(idGenerator.generateAlimentId(), "Avocat", 45, 4, 22, 8));
+		var ali3 = new Aliment(idGenerator.generateAlimentId(), "Haricots verts", 3200, 170, 440, 10);
+		aliments.add(ali3);
+		var avocat = new Aliment(idGenerator.generateAlimentId(), "Avocat", 20500, 156, 83, 2060);
+		aliments.add(avocat);
 
-		var itk1 = new Intake(idGenerator.generateIntakeId(), ali1, 500);
+		var itk1 = new Intake(idGenerator.generateIntakeId(), ali1, 10000);
+		itk1.calculateNutriments();
 		var itk2 = new Intake(idGenerator.generateIntakeId(), ali2, 250);
-		var itk3 = (Intake) itk2.clone();
-		itk3.setId(idGenerator.generateAlimentId());
-
-		var intakes = new ArrayList<Intake>();
-		intakes.add(itk1);
-		intakes.add(itk2);
+		itk2.calculateNutriments();
+		var itk3 = new Intake(idGenerator.generateIntakeId(), avocat, 100);
 
 		var menus = new ArrayList<Menu>();
 		var menu1 = new Menu(idGenerator.generateMenuId(), "Riz/Hricots Rouge", new ArrayList<>());
-		menu1.getIntakes().add(new Intake(idGenerator.generateMenuId(), ali1, 200));
-		menu1.getIntakes().add(new Intake(idGenerator.generateMenuId(), ali2, 300));
+		menu1.getIntakes().add(itk1);
+		menu1.getIntakes().add(itk2);
+		menu1.getIntakes().add(itk3);
 		menus.add(menu1);
 
 		// liste des depenses
@@ -155,7 +168,8 @@ public class AppConsole {
 		%s: update yearly expenses
 	
 		%s: delete montly expenses
-		%s: delete quater expenses
+		%s: delete quater expensesmenu.getIntakes().stream().map(e -> e.getAliment().getEnergy())
+							.reduce(
 		%s: delete yearly expenses
 """.formatted(addBlankToString(CMD_CREATE_EXPENSE, RIGHT_SPACE_SIZE),
 							addBlankToString(CMD_UPDATE_MONTHLY_EXPENSE, RIGHT_SPACE_SIZE),
@@ -269,7 +283,7 @@ public class AppConsole {
 					System.out.println("delete");
 
 				}
-				case IntakeConsoleService.CMD_READ_ALL -> {
+				case AlimentConsoleService.CMD_READ_ALL -> {
 					alimentConsoleService.readAll(input, aliments);
 				}
 				case IntakeConsoleService.CMD_CREATE -> {
@@ -284,7 +298,21 @@ public class AppConsole {
 					var menu = menus.stream().filter(e -> e.getId() == menuId).findFirst().get();
 					System.out.println(
 							"Reading menu : " + Util.colorToPrimary(menu.getName()) + " contains aliments ...");
-					intakeConsoleService.displayTable(menu.getIntakes(), 777, 554, 112);
+					System.out.println(Util.colorToPrimary("Goal: MB : " + MB + " kcal, DAILY_ENERGY : " + DAILY_ENERGY
+							+ " kcal; PROT: " + PROT + " g"));
+					var energySum = menu.getIntakes().stream().map(e -> e.getCalculadedAliment().getEnergy())
+							.reduce((a, b) -> a + b).get();
+					var proteinSum = menu.getIntakes().stream().map(e -> e.getCalculadedAliment().getProteinCount())
+							.reduce((a, b) -> a + b).get();
+					var carbohydrateSum = menu.getIntakes().stream()
+							.map(e -> e.getCalculadedAliment().getCarbohydrateCount()).reduce((a, b) -> a + b).get();
+					var fatSum = menu.getIntakes().stream().map(e -> e.getCalculadedAliment().getFatCount())
+							.reduce((a, b) -> a + b).get();
+					var quantitySum = menu.getIntakes().stream().map(e -> e.getQuantity()).reduce((a, b) -> a + b)
+							.get();
+
+					intakeConsoleService.displayTable(menu.getIntakes(), energySum, proteinSum, carbohydrateSum, fatSum,
+							quantitySum, (int) MB, (int) DAILY_ENERGY);
 				}
 				case MenuConsoleService.CMD_CREATE -> {
 					var menu = menuConsoleService.record(input, idGenerator);
@@ -297,6 +325,7 @@ public class AppConsole {
 					var aliment = aliments.stream().filter(e -> e.getId() == alimentId).findFirst().get();
 					var intake = intakeConsoleService.record(input, idGenerator);
 					intake.setAliment(aliment);
+					intake.calculateNutriments();
 
 					var menu = menus.stream().filter(e -> e.getId() == menuId).findFirst().get();
 					menu.getIntakes().add(intake);
