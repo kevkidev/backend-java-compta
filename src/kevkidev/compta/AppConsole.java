@@ -95,19 +95,19 @@ public class AppConsole {
 		// liste des depenses
 		var monthlyExpenses = new ArrayList<Expense>();
 
-		monthlyExpenses.add(new EntityExpense(mainService.generateId(), "Loyer", 50000, "+++ mois"));
-		monthlyExpenses.add(new EntityExpense(mainService.generateId(), "EDF", 6000, ""));
-		monthlyExpenses.add(new EntityExpense(mainService.generateId(), "Impôts", 0, "à la source"));
+		monthlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Loyer", 50000, "+++ mois"));
+		monthlyExpenses.add(new EntityExpense(idGenerator.generateId(), "EDF", 6000, ""));
+		monthlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Impôts", 0, "à la source"));
 
 		// list trimestre
 		var quarterExpenses = new ArrayList<Expense>();
-		quarterExpenses.add(new EntityExpense(mainService.generateId(), "Cotisation ", 3000, "jan, avr,jui, oct"));
+		quarterExpenses.add(new EntityExpense(idGenerator.generateId(), "Cotisation ", 3000, "jan, avr,jui, oct"));
 
 		var yearlyExpenses = new ArrayList<Expense>();
-		yearlyExpenses.add(new EntityExpense(mainService.generateId(), "Impôts", 0, "mai, juin"));
-		yearlyExpenses.add(new EntityExpense(mainService.generateId(), "Service 1", 0, "fin le 9/11/2023"));
-		yearlyExpenses.add(new EntityExpense(mainService.generateId(), "Service 2", 4900, "4.1€/moins"));
-		yearlyExpenses.add(new EntityExpense(mainService.generateId(), "Vacances", 0, ""));
+		yearlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Impôts", 0, "mai, juin"));
+		yearlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Service 1", 0, "fin le 9/11/2023"));
+		yearlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Service 2", 4900, "4.1€/moins"));
+		yearlyExpenses.add(new EntityExpense(idGenerator.generateId(), "Vacances", 0, ""));
 
 		var lists = new HashMap<String, List<Expense>>();
 		lists.put("monthlyExpenses", monthlyExpenses);
